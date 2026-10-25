@@ -32,19 +32,13 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v7
+      uses: actions/checkout@v4
       
     - name: Set up JDK 17
-      uses: actions/setup-java@v6
+      uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
-        
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-      
-    - name: Accept Android SDK licenses
-      run: echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses --sdk_root=$ANDROID_HOME
       
     - name: Grant execute permission for gradle
       run: chmod +x gradlew
