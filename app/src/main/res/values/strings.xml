@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">پل</string>
+    <string name="bridge_title">پــــل</string>
+    <string name="online_users">آنلاین: ۰</string>
+    <string name="chats">گفتگوها</string>
+    <string name="contacts">مخاطبین</string>
+    <string name="settings">تنظیمات</string>
+    <string name="profile">نمایه</string>
+    <string name="new_chat">گفتگوی جدید</string>
+    <string name="no_messages">هیچ پیامی وجود ندارد</string>
+    <string name="type_message">پیام خود را اینجا بنویسید...</string>
+</resources>

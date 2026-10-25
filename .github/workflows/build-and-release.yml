@@ -1,0 +1,121 @@
+name: Build and Release Android App
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+        - debug
+        - release
+      tag_name:
+        description: 'Tag name (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+env:
+  GOOGLE_PLAY_JSON: ${{ secrets.GOOGLE_PLAY_JSON }}
+  KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+  KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+  KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Accept Android SDK licenses
+      run: echo "y" | $ANDROID_HOME/tools/bin/sdkmanager --licenses
+      
+    - name: Grant execute permission for gradle
+      run: chmod +x gradlew
+      
+    - name: Build Debug APK
+      if: github.event.inputs.release_type != 'release'
+      run: ./gradlew assembleDebug
+      working-directory: ./app
+      
+    - name: Build Release APK
+      if: github.event.inputs.release_type == 'release'
+      run: |
+        ./gradlew assembleRelease
+        ./gradlew bundleRelease
+      working-directory: ./app
+      
+    - name: Upload Debug APK
+      if: github.event.inputs.release_type != 'release'
+      uses: actions/upload-artifact@v4
+      with:
+        name: debug-apk
+        path: app/build/outputs/apk/debug/app-debug.apk
+        
+    - name: Upload Release APK
+      if: github.event.inputs.release_type == 'release'
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-apk
+        path: |
+          app/build/outputs/apk/release/app-release.apk
+          app/build/outputs/bundle/release/app-release.aab
+
+  create-release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.release_type == 'release'
+    
+    steps:
+    - name: Download Release APK
+      uses: actions/download-artifact@v4
+      with:
+        name: release-apk
+        path: artifacts/
+        
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.event.inputs.tag_name }}
+        release_name: Bridge ${{ github.event.inputs.tag_name }}
+        body: |
+          ## Bridge ${{ github.event.inputs.tag_name }}
+          
+          Bridge is a modern chat application for local device communication.
+          
+          ### Installation
+          Download the APK file and install on your Android device.
+          
+          ### Usage
+          Connect to a WiFi network to discover and communicate with other users.
+          
+          ### Support
+          For technical support or feature requests, please refer to the project documentation.
+        draft: false
+        prerelease: false
+        files: artifacts/*
+        
+    - name: Upload to Google Play (Optional)
+      if: env.GOOGLE_PLAY_JSON != ''
+      run: |
+        echo "Google Play credentials found, would upload to Play Store"
+        # Add Google Play upload steps here if needed
+      continue-on-error: true
