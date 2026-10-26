@@ -46,14 +46,12 @@ jobs:
     - name: Build Debug APK
       if: github.event.inputs.release_type != 'release'
       run: ./gradlew assembleDebug
-      working-directory: ./app
       
     - name: Build Release APK
       if: github.event.inputs.release_type == 'release'
       run: |
         ./gradlew assembleRelease
         ./gradlew bundleRelease
-      working-directory: ./app
       
     - name: Upload Debug APK
       if: github.event.inputs.release_type != 'release'
