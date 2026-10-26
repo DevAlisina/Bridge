@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <font name="vazir">fonts/vazir.ttf</font>
-    <font name="vazir_medium">fonts/vazir-medium.ttf</font>
-    <font name="vazir_bold">fonts/vazir-bold.ttf</font>
+    <!-- Font declarations will be added when actual font files are available -->
 </resources>
