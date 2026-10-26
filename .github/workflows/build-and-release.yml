@@ -47,13 +47,13 @@ jobs:
         
     - name: Build Debug APK
       if: github.event.inputs.release_type != 'release'
-      run: ./gradlew assembleDebug
+      run: gradle assembleDebug
       
     - name: Build Release APK
       if: github.event.inputs.release_type == 'release'
       run: |
-        ./gradlew assembleRelease
-        ./gradlew bundleRelease
+        gradle assembleRelease
+        gradle bundleRelease
       
     - name: Upload Debug APK
       if: github.event.inputs.release_type != 'release'
