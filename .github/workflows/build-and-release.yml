@@ -3,24 +3,12 @@ name: Build and Release Android App
 on:
   push:
     branches: [ main, master ]
-    tags:
-      - 'v*'
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
-    inputs:
-      release_type:
-        description: 'Release type'
-        required: true
-        default: 'release'
-        type: choice
-        options:
-        - debug
-        - release
-      tag_name:
-        description: 'Tag name (e.g., v1.0.0)'
-        required: true
-        default: 'v1.0.0'
+
+permissions:
+  contents: write
 
 env:
   GOOGLE_PLAY_JSON: ${{ secrets.GOOGLE_PLAY_JSON }}
@@ -59,46 +47,35 @@ jobs:
         gradle assembleRelease
         gradle bundleRelease
       
-    - name: Upload Debug APK
-      if: github.event.inputs.release_type != 'release'
-      uses: actions/upload-artifact@v4
-      with:
-        name: debug-apk
-        path: app/build/outputs/apk/debug/app-debug.apk
+- name: Rename Debug APK
+      run: |
+        BUILD_NUMBER=$(printf "%05d" "${{ github.run_number }}")
+        cp app/build/outputs/apk/debug/app-debug.apk "Bridge-debug-${BUILD_NUMBER}.apk"
         
-    - name: Upload Release APK
-      if: github.event.inputs.release_type == 'release'
-      uses: actions/upload-artifact@v4
-      with:
-        name: release-apk
-        path: |
-          app/build/outputs/apk/release/app-release.apk
-          app/build/outputs/bundle/release/app-release.aab
-
   create-release:
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     permissions:
       contents: write
     
     steps:
-    - name: Download Release APK
-      if: github.event.inputs.release_type == 'release' || startsWith(github.ref, 'refs/tags/')
+    - name: Download Debug APK
       uses: actions/download-artifact@v4
       with:
-        name: release-apk
+        name: debug-apk
         path: artifacts/
         
     - name: Create Release
-      if: github.event.inputs.release_type == 'release' || startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: ${{ github.event.inputs.tag_name || github.ref_name }}
-        name: Bridge ${{ github.event.inputs.tag_name || github.ref_name }}
+        tag_name: build-${{ github.run_number }}
+        name: Bridge Build ${{ github.run_number }}
         body: |
-          ## Bridge ${{ github.event.inputs.tag_name || github.ref_name }}
+          ## Bridge Build ${{ github.run_number }}
           
+          Automated build from commit ${{ github.sha }}.
+          
+          ### Bridge App
           Bridge is a modern chat application for local device communication.
           
           ### Installation
@@ -118,12 +95,23 @@ jobs:
           - Android SDK 34
           - Material Design 3
           - RTL support
+          - Debug build (auto-uploaded on every push)
           
           ### Support
           For technical support or feature requests, please refer to the project documentation.
+          
+          ---
+          
+          **Build Information:**
+          - Build Number: ${{ github.run_number }}
+          - Commit: ${{ github.sha }}
+          - Branch: ${{ github.ref }}
+          - Timestamp: ${{ github.event.created_at }}
         draft: false
-        prerelease: false
-        files: artifacts/*
+        prerelease: true
+        files: |
+          artifacts/app/build/outputs/apk/debug/app-debug.apk
+          Bridge-debug-${{ github.run_number }}.apk
         
     - name: Upload to Google Play (Optional)
       if: env.GOOGLE_PLAY_JSON != ''
